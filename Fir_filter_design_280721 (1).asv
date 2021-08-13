@@ -1,0 +1,110 @@
+%FIR filter
+clc
+clear
+fp=input("enter the value of passband frequency:")
+fs=input("enter the value of stopband frequency:")
+Fs=input("enter the value of sampling frequency:")
+rs=input("enter the value of stopband ripple:  ")
+lfs=length(fs);%=length(ws)
+lfp=length(fp);%=length(wp)
+if lfp==1
+    wp=2*pi*fp/Fs;
+    ws=2*pi*fs/Fs;
+else
+    wp(1)=2*pi*fp(1)/Fs;%for frquency in Hz
+    wp(2)=2*pi*fp(2)/Fs;
+    ws(1)=2*pi*fs(1)/Fs;
+    ws(2)=2*pi*fs(2)/Fs;
+end
+% step1 Decide which window to be used and calculate N
+As=-20*log(rs)  %stopband attenuation
+tw=abs(wp(1)-ws(1));%transition width
+if As<=21
+    disp('reccangular window')
+   
+    N=ceil((4*pi/tw-1));
+    if (rem(N,2)==0)
+        N=N+1;
+         wn=@(n)(1);
+    end
+elseif As>21 && As<44
+    disp('Hanning window')
+    
+    N=ceil((8*pi/tw));
+    if (rem(N,2)==0)
+        N=N+1;
+    end
+    wn=@(n)(0.5*(1-cos(2*pi*n/(N-1))));
+    elseif As>21 && As<44
+    disp('Hamming window')
+   
+    N=ceil((8*pi/tw));
+    if (rem(N,2)==0)
+        N=N+1;
+    end
+     wn=@(n)(0.54-0.46*cos(2*pi*n/(N-1)));
+end
+
+tao=N-1/2;
+
+%step2 decide basic filters and obtain h(n) expression
+
+hd=@(w,n)((1/(2*pi))*exp(-w*tao*i)*exp(w*n*i));
+if lfp==1 && lfs==1
+    if wp>ws
+        disp('Highpass filter')
+        wc=(wp+ws)/2;
+        syms w n z
+        for n=0:1:N-1
+            hnd=int (hd(w,n),'w',-pi, -wc)+int (hd(w,n),'w',wc, pi);
+            hd2=double(hnd);
+            hn(n+1)=hd2*wn(n);
+        end
+        hn
+        m=0:1:N-1;
+        stem(m, hn)
+    else
+        disp('low pass filter')
+        wc=(wp+ws)/2;
+        syms w n z
+        for n=0:1:N-1
+            hnd=int (hd(w,n),'w',-pi, -wc);
+            hd2=double(hnd);
+            hn(n+1)=hd2*wn(n);
+        end
+        hn
+        m=0:1:N-1;
+        stem(m, hn)
+    end
+elseif lfp==2 && lfs==2
+     if wp(2)>ws(2)
+        disp('Band pass filter')
+        wc1=(wp(1)+ws(1))/2;
+        wc2=(wp(2)+ws(2))/2;
+        syms w n z
+        for n=0:1:N-1
+            hnd=int (hd(w,n),'w',-wc2, -wc1)+int (hd(w,n),'w',wc1, wc2);
+            hd2=double(hnd);
+            hn(n+1)=hd2*wn(n);
+        end
+        hn
+        m=0:1:N-1;
+        stem(m, hn)
+    else
+        disp('band stop filter')
+         wc1=(wp(1)+ws(1))/2;
+        wc2=(wp(2)+ws(2))/2;
+        
+        syms w n z
+        for n=0:1:N-1
+            hnd=int (hd(w,n),'w',-pi, -wc2)+int (hd(w,n),'w',-wc1, wc1)+int (hd(w,n),'w',wc2, pi);
+            hd2=double(hnd);
+            hn(n+1)=hd2*wn(n);
+        end
+        hn
+        m=0:1:N-1;
+        stem(m, hn)
+     end
+end
+    
+    
